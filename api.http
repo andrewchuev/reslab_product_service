@@ -5,7 +5,7 @@ GET http://localhost:8080/api/healthcheck
 GET http://localhost:8080/api/notes
 
 ### List
-GET http://localhost:8080/api/products?limit=100
+GET http://localhost:8080/api/products?limit=100&order_by=price&order=desc
 
 ### Create
 POST http://localhost:8080/api/notes
@@ -36,6 +36,9 @@ content-type: application/json
 ### Read
 GET http://localhost:8080/api/notes/4217276a-60db-40a4-a89b-5583a4786c8d
 
+### Read Product
+GET http://localhost:8080/api/products/10
+
 ### Update
 PATCH http://localhost:8080/api/notes/4217276a-60db-40a4-a89b-5583a4786c8d
 content-type: application/json
@@ -44,6 +47,17 @@ content-type: application/json
     "content": "here some reminder, mention @raditzlawliet share and like"
 }
 
+### Update
+PATCH http://localhost:8080/api/products/1
+content-type: application/json
+
+{
+  "description": "ыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыыы"
+}
+
 ### Delete
 DELETE http://localhost:8080/api/notes/4217276a-60db-40a4-a89b-5583a4786c8d
+
+### Delete product
+DELETE http://localhost:8080/api/products/103
 
