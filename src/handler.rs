@@ -18,7 +18,7 @@ use crate::{
 };
 
 pub async fn health_check_handler() -> impl IntoResponse {
-    const MESSAGE: &str = "API Services";
+    const MESSAGE: &str = "API Product Service";
 
     let json_response = serde_json::json!({
         "status": "ok",

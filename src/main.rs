@@ -22,7 +22,7 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    println!("🌟 REST API Service 🌟");
+    println!("🌟 REST API Product Service 🌟");
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must set");
     let pool = match MySqlPoolOptions::new()
