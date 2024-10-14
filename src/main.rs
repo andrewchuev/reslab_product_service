@@ -4,14 +4,10 @@ mod route;
 mod schema;
 
 use std::sync::Arc;
-
 use axum::http::{header::CONTENT_TYPE, Method};
-
 use dotenv::dotenv;
 use tokio::net::TcpListener;
-
 use sqlx::mysql::{MySqlPool, MySqlPoolOptions};
-
 use route::create_router;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -39,6 +35,8 @@ async fn main() {
             std::process::exit(1);
         }
     };
+
+
 
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])

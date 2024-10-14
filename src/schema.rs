@@ -19,8 +19,8 @@ pub struct CreateProductSchema {
     pub description: String,
     pub price: Option<BigDecimal>,
     pub category_id: u64,
-    pub code: u64,
-    pub stock: u64,
+    pub code: i32,
+    pub stock: i32,
 }
 
 // Update
@@ -29,7 +29,7 @@ pub struct UpdateProductSchema {
     pub name: Option<String>,
     pub description: Option<String>,
     pub price: Option<BigDecimal>,
-    pub category_id: Option<u64>,
-    pub code: Option<u64>,
-    pub stock: Option<u64>,
+    pub category_id: u32,
+    pub code: i32,
+    pub stock: i32,
 }

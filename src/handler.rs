@@ -1,15 +1,11 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Extension, Json};
 
 use axum::response::Html;
 use serde_json::json;
-
+use sqlx::MySqlPool;
+use tera::{Context, Tera};
 use crate::model::{ProductModel, ProductModelResponse};
 use crate::schema::{CreateProductSchema, UpdateProductSchema};
 use crate::{
@@ -27,12 +23,6 @@ pub async fn health_check_handler() -> impl IntoResponse {
 
     Json(json_response)
 }
-
-pub async fn home_page_handler() -> impl IntoResponse {
-    let html: String = "<h1>Hello from Axum</h1>".to_string();
-    Html(html)
-}
-
 
 pub async fn product_list_handler(
     opts: Option<Query<FilterOptions>>,
@@ -171,7 +161,7 @@ pub async fn get_product_handler(
 
 
 pub async fn edit_product_handler(
-    Path(id): Path<u64>,
+    Path(id): Path<u32>,
     State(data): State<Arc<AppState>>,
     Json(body): Json<UpdateProductSchema>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
@@ -208,7 +198,7 @@ pub async fn edit_product_handler(
             .bind(&body.name.unwrap_or_else(|| product.name))
             .bind(body.description.clone().or(product.description.clone()))
             .bind(&body.price.unwrap_or_else(|| product.price))
-            .bind(&body.category_id.unwrap_or_else(|| product.category_id))
+            .bind(&body.category_id)
             .bind(&id)
             .execute(&data.db)
             .await
@@ -295,3 +285,27 @@ fn to_product_response(product: &ProductModel) -> ProductModelResponse {
         updated_at: product.updated_at.unwrap(),
     }
 }
+
+
+pub async fn render_products_page(
+    Extension(tera): Extension<Arc<Tera>>,
+    Extension(pool): Extension<MySqlPool>,  // Pool для доступа к базе данных
+) -> Html<String> {
+    // Запрос продуктов из базы данных напрямую
+    let products = sqlx::query_as!(
+        ProductModel,
+        "SELECT *  FROM products"
+    )
+        .fetch_all(&pool)
+        .await
+        .expect("Failed to fetch products");
+
+    let mut context = Context::new();
+    context.insert("products", &products);
+
+    let rendered = tera.render("products.html", &context)
+        .expect("Failed to render template");
+
+    Html(rendered)
+}
+
