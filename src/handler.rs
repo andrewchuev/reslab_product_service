@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Extension, Json};
 
-use axum::response::Html;
-use serde_json::json;
-use sqlx::MySqlPool;
-use tera::{Context, Tera};
 use crate::model::{ProductModel, ProductModelResponse};
 use crate::schema::{CreateProductSchema, UpdateProductSchema};
 use crate::{
     schema::FilterOptions,
     AppState,
 };
+use axum::response::Html;
+use serde_json::json;
+use sqlx::MySqlPool;
+use tera::{Context, Tera};
 
 pub async fn health_check_handler() -> impl IntoResponse {
     const MESSAGE: &str = "API Product Service";
