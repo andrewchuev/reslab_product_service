@@ -4,16 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<h1>Product List</h1>
-<div id="products">
-    {% for product in products %}
-    <div class="product-card">
-        <h2>{{ product.name }}</h2>
-        <p>Price: ${{ product.price }}</p>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+<header class="bg-blue-600 p-4 text-white text-center text-xl font-bold">
+    Product List
+</header>
+<main class="container mx-auto mt-8 p-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for product in products %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden transform transition-all hover:scale-105 hover:shadow-lg">
+
+            <div class="p-4">
+            <img src="/static/{{ product.image }}" alt="{{ product.name }}" class="w-max[300px]">
+            </div>
+
+            <div class="p-6">
+                <h2 class="text-lg font-semibold text-gray-800">{{ product.name }}</h2>
+                <p class="mt-2 text-2xl text-gray-600">{{ product.price }} грн.</p>
+                <button class="mt-4 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50">
+                    Купить
+                </button>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
+</main>
 </body>
 </html>

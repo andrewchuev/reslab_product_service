@@ -7,6 +7,7 @@ use crate::{
 };
 use axum::{routing::{get, post}, Extension, Router};
 use tera::Tera;
+use tower_http::services::fs::ServeDir;
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
     let tera = Tera::new("templates/*").unwrap();
@@ -23,5 +24,6 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
                 .patch(edit_product_handler)
                 .delete(delete_product_handler),
         )
+        .nest_service("/static", ServeDir::new("static"))
         .with_state(app_state)
 }

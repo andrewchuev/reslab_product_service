@@ -294,7 +294,7 @@ pub async fn render_products_page(
     // Запрос продуктов из базы данных напрямую
     let products = sqlx::query_as!(
         ProductModel,
-        "SELECT *  FROM products"
+        "SELECT *  FROM products order by price desc"
     )
         .fetch_all(&pool)
         .await
