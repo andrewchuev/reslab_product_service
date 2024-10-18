@@ -289,7 +289,7 @@ fn to_product_response(product: &ProductModel) -> ProductModelResponse {
 
 pub async fn render_products_page(
     Extension(tera): Extension<Arc<Tera>>,
-    Extension(pool): Extension<MySqlPool>,  // Pool для доступа к базе данных
+    Extension(pool): Extension<MySqlPool>,
 ) -> Html<String> {
     // Запрос продуктов из базы данных напрямую
     let products = sqlx::query_as!(
