@@ -9,6 +9,7 @@ use crate::{
     AppState,
 };
 use axum::response::Html;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use serde_json::json;
 use sqlx::MySqlPool;
 use tera::{Context, Tera};
@@ -28,38 +29,35 @@ pub async fn product_list_handler(
     opts: Option<Query<FilterOptions>>,
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    // Param
+    // Параметры фильтрации
     let Query(opts) = opts.unwrap_or_default();
 
     let limit = opts.limit.unwrap_or(10);
     let offset = (opts.page.unwrap_or(1) - 1) * limit;
-    let order = opts.order.unwrap_or("asc".to_string());
-    let order_by = opts.order_by.unwrap_or("id".to_string());
-
+    let order = opts.order.unwrap_or_else(|| "asc".to_string());
+    let order_by = opts.order_by.unwrap_or_else(|| "id".to_string());
 
     let query = format!(
         "SELECT * FROM products ORDER BY {} {} LIMIT ? OFFSET ?",
-        order_by,
-        order,
+        order_by, order,
     );
 
-    let products =
-        sqlx::query_as::<_, ProductModel>(&query)
-            .bind(limit as i32)
-            .bind(offset as i32)
-            .fetch_all(&data.db)
-            .await
-            .map_err(|e| {
-                let error_response = serde_json::json!({
-                    "status": "error",
-                    "message": format!("Database error: { }", e),
-                });
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
-            })?;
+    let products = sqlx::query_as::<_, ProductModel>(&query)
+        .bind(limit as i32)
+        .bind(offset as i32)
+        .fetch_all(&data.db)
+        .await
+        .map_err(|e| {
+            let error_response = serde_json::json!({
+                "status": "error",
+                "message": format!("Database error: {:?}", e),
+            });
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+        })?;
 
     let product_responses = products
         .iter()
-        .map(|product| to_product_response(&product))
+        .map(|product| to_product_response(product))
         .collect::<Vec<ProductModelResponse>>();
 
     let json_response = serde_json::json!({
@@ -76,9 +74,11 @@ pub async fn create_product_handler(
     State(data): State<Arc<AppState>>,
     Json(body): Json<CreateProductSchema>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    // Insert
-    //let id = uuid::Uuid::new_v4().to_string();
-    let query_result = sqlx::query(r#"INSERT INTO products (name, description, price, category_id, code, stock, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())"#)
+    // Вставка данных в базу
+    let query_result = sqlx::query(
+        r#"INSERT INTO products (name, description, price, category_id, code, stock, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())"#,
+    )
         .bind(&body.name)
         .bind(&body.description)
         .bind(&body.price)
@@ -86,20 +86,22 @@ pub async fn create_product_handler(
         .bind(&body.code)
         .bind(&body.stock)
         .execute(&data.db)
-        .await
-        .map_err(|err: sqlx::Error| err.to_string());
+        .await;
 
+    let query_result = match query_result {
+        Ok(result) => result,
+        Err(err) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "status": "error", "message": format!("Database insert error: {:?}", err) })),
+            ));
+        }
+    };
 
-    if let Err(err) = query_result {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"status": "error","message": format!("{:?}", err)})),
-        ));
-    }
+    // Получение ID вставленной записи
+    let id = query_result.last_insert_id();
 
-
-    let id = query_result.unwrap().last_insert_id();
-
+    // Получение продукта из базы данных
     let product = sqlx::query_as::<_, ProductModel>(r#"SELECT * FROM products WHERE id = ?"#)
         .bind(&id)
         .fetch_one(&data.db)
@@ -107,20 +109,20 @@ pub async fn create_product_handler(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"status": "error","message": format!("{:?}", e)})),
+                Json(json!({ "status": "error", "message": format!("Failed to fetch product: {:?}", e) })),
             )
         })?;
 
+    // Формирование ответа
     let product_response = serde_json::json!({
-            "status": "success",
-            "data": serde_json::json!({
-                "product": to_product_response(&product)
-        })
+        "status": "success",
+        "data": {
+            "product": to_product_response(&product)
+        }
     });
 
     Ok(Json(product_response))
 }
-
 
 pub async fn get_product_handler(
     Path(id): Path<String>,
@@ -273,20 +275,18 @@ pub async fn delete_product_handler(
 
 fn to_product_response(product: &ProductModel) -> ProductModelResponse {
     ProductModelResponse {
-        id: product.id.to_owned(),
-        category_id: product.category_id.to_owned(),
-        name: product.name.to_owned(),
-        description: product.description.to_owned(),
-        price: product.price.to_owned(),
-        code: product.code.to_owned(),
-        stock: product.stock.to_owned(),
-        image: product.image.to_owned(),
-        created_at: product.created_at.unwrap(),
-        updated_at: product.updated_at.unwrap(),
+        id: product.id,
+        category_id: product.category_id,
+        name: product.name.clone(),
+        description: Option::from(product.description.clone().unwrap_or_default()),
+        price: BigDecimal::try_from(product.price.to_f64().unwrap_or_default()),
+        code: Option::from(product.code.unwrap_or_default()),
+        stock: Option::from(product.stock.unwrap_or_default()),
+        image: Option::from(product.image.clone().unwrap_or_default()),
+        created_at: product.created_at.unwrap_or_else(|| chrono::Utc::now()),
+        updated_at: product.updated_at.unwrap_or_else(|| chrono::Utc::now()),
     }
 }
-
-
 pub async fn render_products_page(
     Extension(tera): Extension<Arc<Tera>>,
     Extension(pool): Extension<MySqlPool>,
