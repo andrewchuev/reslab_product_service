@@ -279,7 +279,7 @@ fn to_product_response(product: &ProductModel) -> ProductModelResponse {
         category_id: product.category_id,
         name: product.name.clone(),
         description: Option::from(product.description.clone().unwrap_or_default()),
-        price: BigDecimal::try_from(product.price.to_f64().unwrap_or_default()),
+        price: BigDecimal::try_from(product.price.to_f64().unwrap_or_default()).unwrap(),
         code: Option::from(product.code.unwrap_or_default()),
         stock: Option::from(product.stock.unwrap_or_default()),
         image: Option::from(product.image.clone().unwrap_or_default()),
